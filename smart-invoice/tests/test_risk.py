@@ -108,6 +108,23 @@ class TestSmartInvoice(unittest.TestCase):
         relocked = verify_user(email, plain_pwd)
         self.assertIsNotNone(relocked)
 
+    def test_negative_input_validation(self):
+        from database import create_invoice
+        # Create invoice with negative tax, hours, and rate, verifying math clamps to non-negative bounds
+        inv = create_invoice(
+            user_id=1,
+            client_name="Test Neg Client",
+            client_email="neg@test.com",
+            invoice_date="2026-09-09",
+            due_date="2026-09-23",
+            tax_rate=-15.0,
+            notes="Negative test",
+            items=[{"description": "Item 1", "hours": -10, "hourly_rate": -50}]
+        )
+        self.assertEqual(inv["tax_rate"], 0.0)
+        self.assertEqual(inv["subtotal"], 0.0)
+        self.assertEqual(inv["grand_total"], 0.0)
+
 if __name__ == "__main__":
     unittest.main()
 

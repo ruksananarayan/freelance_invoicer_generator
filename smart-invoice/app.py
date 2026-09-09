@@ -329,7 +329,6 @@ def add_invoice():
     client_email = data.get("client_email", "").strip()
     invoice_date = data.get("invoice_date", "").strip()
     due_date = data.get("due_date", "").strip()
-    tax_rate = data.get("tax_rate", 0)
     notes = data.get("notes", "").strip()
     items = data.get("items", [])
     
@@ -341,13 +340,26 @@ def add_invoice():
         datetime.strptime(due_date, "%Y-%m-%d")
     except ValueError:
         return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD."}), 400
-        
+
+    try:
+        tax_rate = float(data.get("tax_rate", 0) or 0)
+        if tax_rate < 0:
+            return jsonify({"error": "Tax rate cannot be negative."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Tax rate must be a valid number."}), 400
+
     if not items or len(items) == 0:
         return jsonify({"error": "At least one line item is required."}), 400
         
     for item in items:
-        if not item.get("description") or float(item.get("hours", 0)) <= 0 or float(item.get("hourly_rate", 0)) <= 0:
-            return jsonify({"error": "Each line item must have a description, positive hours, and hourly rate."}), 400
+        try:
+            h = float(item.get("hours", 0))
+            r = float(item.get("hourly_rate", 0))
+        except (ValueError, TypeError):
+            return jsonify({"error": "Hours and hourly rate must be valid numbers."}), 400
+
+        if not item.get("description") or h <= 0 or r < 0:
+            return jsonify({"error": "Each line item must have a description, positive hours (> 0), and non-negative hourly rate (>= 0)."}), 400
 
     created_inv = create_invoice(
         user_id=user_id,

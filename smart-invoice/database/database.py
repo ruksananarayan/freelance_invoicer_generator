@@ -492,20 +492,21 @@ def create_invoice(user_id, client_name, client_email, invoice_date, due_date, t
     
     invoice_number = get_next_invoice_number(user_id)
     
-    subtotal = sum(float(item["hours"]) * float(item["hourly_rate"]) for item in items)
-    tax_amount = subtotal * (float(tax_rate) / 100.0) if tax_rate else 0.0
+    tax_rate_clean = max(0.0, float(tax_rate or 0))
+    subtotal = sum(max(0.0, float(item["hours"])) * max(0.0, float(item["hourly_rate"])) for item in items)
+    tax_amount = subtotal * (tax_rate_clean / 100.0)
     grand_total = subtotal + tax_amount
     
     cursor.execute('''
         INSERT INTO invoices (user_id, invoice_number, client_name, client_email, invoice_date, due_date, tax_rate, subtotal, grand_total, notes, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
-    ''', (user_id, invoice_number, client_name, client_email, invoice_date, due_date, float(tax_rate or 0), subtotal, grand_total, notes))
+    ''', (user_id, invoice_number, client_name, client_email, invoice_date, due_date, tax_rate_clean, subtotal, grand_total, notes))
     
     invoice_id = cursor.lastrowid
     
     for item in items:
-        hours = float(item["hours"])
-        rate = float(item["hourly_rate"])
+        hours = max(0.0, float(item["hours"]))
+        rate = max(0.0, float(item["hourly_rate"]))
         amount = hours * rate
         cursor.execute('''
             INSERT INTO invoice_items (invoice_id, description, hours, hourly_rate, amount)

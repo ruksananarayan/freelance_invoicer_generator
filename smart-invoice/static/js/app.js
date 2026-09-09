@@ -571,7 +571,7 @@ function addLineItemRow(description = "", hours = 1, hourlyRate = 50) {
             <input type="text" class="item-desc" list="services-datalist" placeholder="Type or search saved work..." value="${description}" oninput="onServiceInputSearch(this)" required autocomplete="off">
         </td>
         <td>
-            <input type="number" class="item-hours" min="0.5" step="0.5" value="${hours}" oninput="calculateLiveTotals()" required>
+            <input type="number" class="item-hours" min="0.01" step="0.5" value="${hours}" oninput="calculateLiveTotals()" required>
         </td>
         <td>
             <input type="number" class="item-rate" min="0" step="0.01" value="${hourlyRate}" oninput="calculateLiveTotals()" required>
@@ -622,8 +622,10 @@ function calculateLiveTotals() {
     let subtotal = 0.0;
 
     rows.forEach(row => {
-        const hours = parseFloat(row.querySelector(".item-hours")?.value) || 0;
-        const rate = parseFloat(row.querySelector(".item-rate")?.value) || 0;
+        let hours = parseFloat(row.querySelector(".item-hours")?.value) || 0;
+        let rate = parseFloat(row.querySelector(".item-rate")?.value) || 0;
+        if (hours < 0) hours = 0;
+        if (rate < 0) rate = 0;
         const lineTotal = hours * rate;
 
         const lineTotalElem = row.querySelector(".item-line-total");
@@ -631,7 +633,8 @@ function calculateLiveTotals() {
         subtotal += lineTotal;
     });
 
-    const taxRate = parseFloat(document.getElementById("tax-rate")?.value) || 0;
+    let taxRate = parseFloat(document.getElementById("tax-rate")?.value) || 0;
+    if (taxRate < 0) taxRate = 0;
     const taxAmount = subtotal * (taxRate / 100.0);
     const grandTotal = subtotal + taxAmount;
 
@@ -653,9 +656,15 @@ async function handleCreateInvoice(event) {
     const clientEmail = document.getElementById("client-email").value.trim();
     const invoiceDate = document.getElementById("invoice-date").value;
     const dueDate = document.getElementById("due-date").value;
-    const taxRate = parseFloat(document.getElementById("tax-rate").value) || 0;
+    const taxRateInput = document.getElementById("tax-rate");
+    const taxRate = parseFloat(taxRateInput ? taxRateInput.value : 0) || 0;
     const notes = document.getElementById("invoice-notes").value.trim();
 
+    if (taxRate < 0) {
+        alert("Tax rate cannot be negative. Please enter a valid non-negative tax percentage.");
+        if (taxRateInput) taxRateInput.focus();
+        return;
+    }
     if (!clientName) {
         alert("Please enter a Client Name.");
         document.getElementById("client-name").focus();
@@ -668,6 +677,7 @@ async function handleCreateInvoice(event) {
 
     const itemRows = document.querySelectorAll("#line-items-body tr");
     const items = [];
+    let hasInvalidRow = false;
 
     itemRows.forEach(row => {
         const descInput = row.querySelector(".item-desc");
@@ -676,14 +686,28 @@ async function handleCreateInvoice(event) {
 
         if (descInput && hoursInput && rateInput) {
             const desc = descInput.value.trim();
-            const hours = parseFloat(hoursInput.value) || 0;
-            const rate = parseFloat(rateInput.value) || 0;
+            const hours = parseFloat(hoursInput.value);
+            const rate = parseFloat(rateInput.value);
 
-            if (desc && hours > 0 && rate >= 0) {
+            if (desc) {
+                if (isNaN(hours) || hours <= 0) {
+                    alert(`Invalid hours for service "${desc}". Hours must be a positive number greater than 0.`);
+                    hoursInput.focus();
+                    hasInvalidRow = true;
+                    return;
+                }
+                if (isNaN(rate) || rate < 0) {
+                    alert(`Invalid hourly rate for service "${desc}". Hourly rate cannot be negative.`);
+                    rateInput.focus();
+                    hasInvalidRow = true;
+                    return;
+                }
                 items.push({ description: desc, hours: hours, hourly_rate: rate });
             }
         }
     });
+
+    if (hasInvalidRow) return;
 
     if (items.length === 0) {
         alert("Please enter valid line item details (Service Description, Hours > 0, Hourly Rate >= 0).");
