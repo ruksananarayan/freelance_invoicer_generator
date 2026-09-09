@@ -1,0 +1,18 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+venv/
+env/
+.env
+
+# Database (uncomment if you wish to exclude local DB from git)
+database/invoice.db
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

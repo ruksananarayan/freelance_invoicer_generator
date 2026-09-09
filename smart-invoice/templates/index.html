@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Freelance Invoice & Payment Risk System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js Bundle for 1-Click PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Chart.js for Dashboard Graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="dark-theme">
+
+    <!-- AUTHENTICATION VIEW (Login / Sign Up) -->
+    <div class="auth-wrapper no-print" id="auth-container">
+        <div class="auth-card glass-card">
+            <div class="auth-header">
+                <div class="brand-icon large">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2>CTS Invoice Risk Guard</h2>
+                <p>Smart Freelance Invoice & Payment Risk Platform</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+                <h3><i class="fa-solid fa-right-to-bracket"></i> Freelancer Sign In</h3>
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" class="form-input" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div style="position: relative;">
+                        <input type="password" id="login-password" class="form-input" placeholder="••••••••" required style="padding-right: 2.5rem;">
+                        <i class="fa-solid fa-eye" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" onclick="togglePasswordVisibility('login-password', this)"></i>
+                    </div>
+                </div>
+                <div id="login-error" class="auth-error-msg"></div>
+                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <div class="auth-toggle">
+                    Don't have an account? <a href="#" onclick="toggleAuthMode('register')">Register here</a>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+                <h3><i class="fa-solid fa-user-plus"></i> Freelancer Sign Up</h3>
+                <div class="form-group">
+                    <label for="reg-name">Full Name</label>
+                    <input type="text" id="reg-name" class="form-input" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email Address</label>
+                    <input type="email" id="reg-email" class="form-input" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password (min 6 chars, letters & numbers)</label>
+                    <div style="position: relative;">
+                        <input type="password" id="reg-password" class="form-input" placeholder="••••••••" minlength="6" required style="padding-right: 2.5rem;">
+                        <i class="fa-solid fa-eye" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" onclick="togglePasswordVisibility('reg-password', this)"></i>
+                    </div>
+                </div>
+                <div id="register-error" class="auth-error-msg"></div>
+                <button type="submit" class="btn btn-success btn-block">Create Account</button>
+                <div class="auth-toggle">
+                    Already registered? <a href="#" onclick="toggleAuthMode('login')">Sign In here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP WORKSPACE (Hidden until authenticated) -->
+    <div id="app-workspace" class="hidden">
+        <!-- Top Navigation Bar -->
+        <header class="app-header no-print">
+            <div class="header-container">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="brand-text">
+                        <h1>CTS Invoice Risk Guard</h1>
+                        <span class="tagline">Smart Freelance Invoice & Payment Risk Engine</span>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="user-badge" id="user-badge-display">
+                        <i class="fa-solid fa-user-circle"></i>
+                        <span id="user-display-name">Freelancer</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openRegisterClientModal()">
+                        <i class="fa-solid fa-building-user"></i> Register Client
+                    </button>
+                    <button class="btn btn-secondary" onclick="openServicesModal()">
+                        <i class="fa-solid fa-briefcase"></i> Work & Hourly Rates
+                    </button>
+                    <button class="btn btn-secondary" onclick="openClientHistoryModal()">
+                        <i class="fa-solid fa-users"></i> Risk Profiles
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="handleLogout()" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation Switcher -->
+        <div class="tab-navigation no-print">
+            <button id="btn-tab-dashboard" class="tab-btn active" onclick="switchAppTab('dashboard')">
+                <i class="fa-solid fa-chart-line"></i> Dashboard & Analytics
+            </button>
+            <button id="btn-tab-work" class="tab-btn" onclick="switchAppTab('work')">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Work & Invoices
+            </button>
+        </div>
+
+        <!-- Main Workspace Container -->
+        <main class="main-content no-print">
+
+            <!-- TAB 1: DASHBOARD & ANALYTICS -->
+            <div id="dashboard-tab-content" class="tab-content">
+                <!-- Metrics & Risk Summary Dashboard -->
+                <section class="dashboard-section">
+                    <div class="section-title">
+                        <h2><i class="fa-solid fa-chart-pie"></i> Payment Overview & Intelligence</h2>
+                        <span class="badge badge-info"><i class="fa-solid fa-bolt"></i> Risk Monitoring Active</span>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card glass-card">
+                            <div class="card-icon blue"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <div class="metric-info">
+                                <span class="label">Total Billed</span>
+                                <h3 id="stat-total-billed">₹0.00</h3>
+                                <span class="subtext" id="stat-total-count">0 total invoices</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card glass-card">
+                            <div class="card-icon amber"><i class="fa-solid fa-clock"></i></div>
+                            <div class="metric-info">
+                                <span class="label">Pending Amount</span>
+                                <h3 id="stat-pending-amount">₹0.00</h3>
+                                <span class="subtext" id="stat-pending-count">0 pending</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card glass-card metric-overdue">
+                            <div class="card-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="metric-info">
+                                <span class="label">Overdue Amount</span>
+                                <h3 id="stat-overdue-amount">₹0.00</h3>
+                                <span class="subtext highlight-red" id="stat-overdue-count">0 overdue invoices</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card glass-card metric-high-risk">
+                            <div class="card-icon purple"><i class="fa-solid fa-shield-virus"></i></div>
+                            <div class="metric-info">
+                                <span class="label">High Risk Alerts</span>
+                                <h3 id="stat-high-risk-count">0</h3>
+                                <span class="subtext highlight-purple">Require immediate action</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Analytics Graph -->
+                    <div class="chart-container glass-card" style="margin-top: 1.5rem; padding: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-chart-bar"></i> Revenue Overview</h3>
+                        <canvas id="revenueChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </section>
+
+                <!-- Predefined Works & Client Roster Directory (Freelancer Progress & Setup Analytics) -->
+                <div class="dashboard-details-grid">
+                    <div class="details-card glass-card">
+                        <div class="card-header-inline">
+                            <h3><i class="fa-solid fa-briefcase"></i> Works & Hourly Rate Directory</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="openServicesModal()">
+                                <i class="fa-solid fa-pen-to-square"></i> Manage Catalog
+                            </button>
+                        </div>
+                        <div class="table-responsive-mini">
+                            <table class="data-table-mini">
+                                <thead>
+                                    <tr>
+                                        <th>Work Item</th>
+                                        <th>Hourly Rate</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-services-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="details-card glass-card">
+                        <div class="card-header-inline">
+                            <h3><i class="fa-solid fa-users"></i> Registered Client Roster</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="openRegisterClientModal()">
+                                <i class="fa-solid fa-user-plus"></i> Add Client
+                            </button>
+                        </div>
+                        <div class="table-responsive-mini">
+                            <table class="data-table-mini">
+                                <thead>
+                                    <tr>
+                                        <th>Client / Company</th>
+                                        <th>Payment Terms</th>
+                                        <th>Email Address</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-clients-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: WORK & INVOICING -->
+            <div id="work-tab-content" class="tab-content hidden">
+                <!-- Filters & Invoice History Table -->
+                <section class="table-section glass-card">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="search-input" placeholder="Search by client or invoice #..." onkeyup="filterInvoices()">
+                        </div>
+
+                        <div class="filter-group">
+                            <select id="filter-status" onchange="filterInvoices()">
+                                <option value="">All Statuses</option>
+                                <option value="OVERDUE">🔴 Overdue Only</option>
+                                <option value="PENDING">🟡 Pending Only</option>
+                                <option value="PAID">🟢 Paid Only</option>
+                            </select>
+
+                            <select id="filter-risk" onchange="filterInvoices()">
+                                <option value="">All Risk Levels</option>
+                                <option value="HIGH">🚨 High Risk</option>
+                                <option value="MEDIUM">⚠️ Medium Risk</option>
+                                <option value="LOW">✅ Low Risk</option>
+                            </select>
+
+                            <button class="btn btn-primary btn-sm" onclick="openCreateInvoiceModal()">
+                                <i class="fa-solid fa-plus"></i> Create Invoice
+                            </button>
+                            <button class="btn btn-icon" onclick="refreshAllData()" title="Refresh Data">
+                                <i class="fa-solid fa-rotate-right" id="refresh-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="invoices-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Client Name</th>
+                                    <th>Invoice Date</th>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Deadline Status</th>
+                                    <th>Risk Score</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoices-table-body">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Invoices List Pagination Controls -->
+                    <div class="pagination-wrapper no-print">
+                        <button id="prev-page-btn" class="btn btn-secondary btn-sm" onclick="changeInvoicePage(-1)">
+                            <i class="fa-solid fa-chevron-left"></i> Previous
+                        </button>
+                        <span id="page-indicator" class="page-indicator-text">Page 1 of 1</span>
+                        <button id="next-page-btn" class="btn btn-secondary btn-sm" onclick="changeInvoicePage(1)">
+                            Next <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- REGISTER NEW CLIENT MODAL -->
+    <div class="modal-backdrop no-print" id="register-client-modal">
+        <div class="modal-dialog glass-card">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-building-user"></i>
+                    <h2>Register New Client</h2>
+                </div>
+                <button class="close-btn" onclick="closeRegisterClientModal()">&times;</button>
+            </div>
+            <form id="register-client-form" onsubmit="handleRegisterClientSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="new-client-name">Client / Company Name <span class="required">*</span></label>
+                        <input type="text" id="new-client-name" class="form-input" placeholder="e.g. Apex Global Media" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-client-email">Billing Email</label>
+                        <input type="email" id="new-client-email" class="form-input" placeholder="billing@apexmedia.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-client-whatsapp">WhatsApp Number (with country code)</label>
+                        <input type="text" id="new-client-whatsapp" class="form-input" placeholder="+1234567890">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-client-terms">Default Payment Terms (Days)</label>
+                        <input type="number" id="new-client-terms" class="form-input" value="14" min="1" max="180" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-client-notes">Client Notes</label>
+                        <textarea id="new-client-notes" class="form-input" style="height: 60px;" placeholder="Preferred payment terms, contact person, etc."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeRegisterClientModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-plus"></i> Add Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CREATE INVOICE MODAL -->
+    <div class="modal-backdrop no-print" id="create-modal">
+        <div class="modal-dialog glass-card large-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <h2>Create New Freelance Invoice</h2>
+                </div>
+                <button class="close-btn" onclick="closeCreateInvoiceModal()">&times;</button>
+            </div>
+
+            <form id="invoice-form" onsubmit="handleCreateInvoice(event)" novalidate>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="inv-number-preview">Invoice Number</label>
+                            <input type="text" id="inv-number-preview" class="form-input readonly-accent" readonly value="INV-001">
+                        </div>
+
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <label for="client-select" style="margin-bottom: 0;">Select Registered Client</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;" onclick="openRegisterClientModal()">+ Register Client</button>
+                            </div>
+                            <select id="client-select" class="form-input" onchange="onClientSelectChange()">
+                                <option value="">-- Choose Registered Client (Optional) --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="client-name">Client Name <span class="required">*</span></label>
+                            <input type="text" id="client-name" class="form-input" placeholder="e.g. Acme Corporation" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="client-email">Client Email</label>
+                            <input type="email" id="client-email" class="form-input" placeholder="billing@acme.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="invoice-date">Invoice Date <span class="required">*</span></label>
+                            <input type="date" id="invoice-date" class="form-input" required onchange="onInvoiceDateChange()">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="due-date">Payment Due Date <span class="required">*</span></label>
+                            <input type="date" id="due-date" class="form-input" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tax-rate">Tax Rate (%)</label>
+                            <input type="number" id="tax-rate" class="form-input" min="0" max="100" step="0.5" value="0" oninput="calculateLiveTotals()">
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Service Line Items Table -->
+                    <div class="line-items-wrapper">
+                        <div class="line-items-header">
+                            <h3><i class="fa-solid fa-list-check"></i> Services & Line Items</h3>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addLineItemRow()">
+                                <i class="fa-solid fa-plus"></i> Add Service
+                            </button>
+                        </div>
+
+                        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+                            <table class="line-items-table" style="min-width: 520px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 45%;">Service Description</th>
+                                        <th style="width: 15%;">Hours</th>
+                                        <th style="width: 20%;">Hourly Rate (₹)</th>
+                                        <th style="width: 15%;">Line Total (₹)</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="line-items-body">
+                                    <!-- Dynamic rows inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Totals Calculation Card -->
+                    <div class="totals-calculation-card">
+                        <div class="notes-area">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <label for="invoice-notes" style="margin-bottom: 0;">Invoice Notes & Payment Terms</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;" onclick="startDictation('invoice-notes', this)">
+                                    <i class="fa-solid fa-microphone"></i> Dictate
+                                </button>
+                            </div>
+                            <textarea id="invoice-notes" placeholder="Thank you for your business! Payment due within terms."></textarea>
+                        </div>
+
+                        <div class="live-totals-summary">
+                            <div class="total-row">
+                                <span>Subtotal:</span>
+                                <strong id="calc-subtotal">₹0.00</strong>
+                            </div>
+                            <div class="total-row">
+                                <span>Tax Amount:</span>
+                                <strong id="calc-tax">₹0.00</strong>
+                            </div>
+                            <div class="total-row grand-total-row">
+                                <span>Grand Total:</span>
+                                <strong id="calc-grand-total">₹0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateInvoiceModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="btn-save-invoice" style="font-size: 0.95rem; padding: 0.7rem 1.4rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Invoice & Monitor
+                    </button>
+                </div>
+            </form>
+            <datalist id="services-datalist"></datalist>
+
+        </div>
+    </div>
+
+    <!-- INVOICE INSPECTOR & RISK BREAKDOWN MODAL -->
+    <div class="modal-backdrop no-print" id="detail-modal">
+        <div class="modal-dialog glass-card large-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-file-invoice"></i>
+                    <h2 id="detail-invoice-number">Invoice Details</h2>
+                </div>
+                <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+            </div>
+
+            <div class="modal-body" id="detail-modal-content">
+                <!-- Populated dynamically by app.js -->
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-download-pdf" onclick="downloadCurrentInvoicePDF()">
+                    <i class="fa-solid fa-file-pdf"></i> Download PDF
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-print-detail" onclick="printCurrentInvoice()">
+                    <i class="fa-solid fa-print"></i> Print
+                </button>
+                <button type="button" class="btn btn-success" id="btn-mark-paid" onclick="markCurrentAsPaid()">
+                    <i class="fa-solid fa-circle-check"></i> Mark as Paid
+                </button>
+                <button type="button" class="btn btn-outline-primary" style="color: #25D366; border-color: #25D366;" id="btn-share-whatsapp" onclick="shareCurrentInvoiceWhatsApp()">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLIENT RISK PROFILES MODAL -->
+    <div class="modal-backdrop no-print" id="clients-modal">
+        <div class="modal-dialog glass-card large-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <h2>Client Payment Behavior & Risk Analytics</h2>
+                </div>
+                <button class="close-btn" onclick="closeClientsModal()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Total Invoices</th>
+                                <th>Paid Invoices</th>
+                                <th>Late Payments</th>
+                                <th>Late Ratio</th>
+                                <th>Avg Payment Delay</th>
+                                <th>Outstanding Amount</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clients-table-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeClientsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORK & HOURLY RATES SERVICES CATALOG MODAL -->
+    <div class="modal-backdrop no-print" id="services-modal">
+        <div class="modal-dialog glass-card large-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <h2>My Work & Hourly Rates Catalog</h2>
+                </div>
+                <button class="close-btn" onclick="closeServicesModal()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Add / Edit Service Form -->
+                <form id="service-form" onsubmit="handleSaveService(event)" style="display: block !important; flex: none !important; overflow: visible !important; margin-bottom: 1.25rem; background: #0f172a; padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    <input type="hidden" id="service-edit-id" value="">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--primary-blue);" id="service-form-title">
+                        <i class="fa-solid fa-plus"></i> Add Predefined Work Item / Service
+                    </h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="service-title">Work / Service Title <span class="required">*</span></label>
+                            <input type="text" id="service-title" class="form-input" list="common-services-list" placeholder="Choose popular service or type custom work..." required autocomplete="off">
+                            <datalist id="common-services-list">
+                                <option value="Web Development & Architecture">
+                                <option value="UI/UX & Graphic Design">
+                                <option value="Cloud Infrastructure & DevOps">
+                                <option value="Mobile App Development">
+                                <option value="Content Writing & Technical SEO">
+                                <option value="Video Editing & Motion Graphics">
+                                <option value="Technical Consulting & Code Audit">
+                                <option value="Quality Assurance & Automated Testing">
+                                <option value="Data Analysis & Visualization">
+                                <option value="Social Media & Digital Marketing">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="service-rate">Hourly Charge (₹/hr) <span class="required">*</span></label>
+                            <input type="number" id="service-rate" class="form-input" placeholder="750.00" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="service-desc">Work Scope Description (Optional)</label>
+                            <input type="text" id="service-desc" class="form-input" placeholder="e.g. Full-stack web application development and cloud deployment">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-service-edit" onclick="resetServiceForm()" style="display: none;">Cancel Edit</button>
+                        <button type="submit" class="btn btn-success" id="btn-save-service" style="padding: 0.55rem 1.5rem; font-weight: 600; font-size: 0.9rem; border-radius: var(--radius-sm);">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Work Item
+                        </button>
+                    </div>
+                </form>
+
+                <h3 style="font-size: 1rem; margin-bottom: 0.75rem;"><i class="fa-solid fa-list"></i> Your Saved Work Items</h3>
+                <div class="table-responsive" style="max-height: 230px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Work / Service Title</th>
+                                <th>Hourly Rate (₹/hr)</th>
+                                <th>Description</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-table-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeServicesModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINTABLE INVOICE CONTAINER -->
+    <div class="print-container" id="printable-invoice">
+        <!-- Rendered cleanly for Print/PDF -->
+    </div>
+
+    <!-- App JS -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice {{ invoice.invoice_number if invoice else 'View' }} - CTS Invoice Guard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        body { background: #0f172a; padding: 2rem 1rem; }
+        .invoice-card-wrap { max-width: 850px; margin: 0 auto; }
+        .action-bar { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="invoice-card-wrap">
+        <div class="action-bar no-print">
+            <a href="/" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Invoice</button>
+                <button class="btn btn-primary" onclick="downloadInvoicePDF()"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+            </div>
+        </div>
+
+        <div class="print-container" id="printable-invoice" style="display: block !important;">
+            {% if invoice %}
+            <div class="print-invoice-header">
+                <div class="print-company">
+                    <h1>FREELANCE INVOICE</h1>
+                    <p>Professional Creative & Technical Services</p>
+                </div>
+                <div class="print-inv-details">
+                    <h2>{{ invoice.invoice_number }}</h2>
+                    <p>Status: {{ invoice.status }}</p>
+                </div>
+            </div>
+
+            <div class="print-meta-grid">
+                <div class="print-meta-box">
+                    <h4>Billed To:</h4>
+                    <p>{{ invoice.client_name }}</p>
+                    <p style="font-weight: normal; font-size: 0.9rem;">{{ invoice.client_email or '' }}</p>
+                </div>
+                <div class="print-meta-box">
+                    <h4>Invoice Date:</h4>
+                    <p>{{ invoice.invoice_date }}</p>
+                </div>
+                <div class="print-meta-box">
+                    <h4>Payment Due Date:</h4>
+                    <p>{{ invoice.due_date }}</p>
+                </div>
+            </div>
+
+            <table class="print-table">
+                <thead>
+                    <tr>
+                        <th>Service Description</th>
+                        <th style="text-align: center;">Hours</th>
+                        <th style="text-align: right;">Hourly Rate</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.items %}
+                    <tr>
+                        <td>{{ item.description }}</td>
+                        <td style="text-align: center;">{{ item.hours }}</td>
+                        <td style="text-align: right;">₹{{ "%.2f"|format(item.hourly_rate) }}</td>
+                        <td style="text-align: right;"><strong>₹{{ "%.2f"|format(item.amount) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="print-totals">
+                <div class="print-total-row">
+                    <span>Subtotal:</span>
+                    <span>₹{{ "%.2f"|format(invoice.subtotal) }}</span>
+                </div>
+                <div class="print-total-row">
+                    <span>Tax ({{ invoice.tax_rate }}%):</span>
+                    <span>₹{{ "%.2f"|format(invoice.grand_total - invoice.subtotal) }}</span>
+                </div>
+                <div class="print-total-row print-grand-total">
+                    <span>Grand Total:</span>
+                    <span>₹{{ "%.2f"|format(invoice.grand_total) }}</span>
+                </div>
+            </div>
+
+            {% if invoice.notes %}
+            <div class="print-footer-notes">
+                <strong>Payment Notes & Terms:</strong>
+                <p>{{ invoice.notes }}</p>
+            </div>
+            {% endif %}
+            {% else %}
+            <p>Invoice not found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function downloadInvoicePDF() {
+            const element = document.getElementById("printable-invoice");
+            const opt = {
+                margin: [0.4, 0.4, 0.4, 0.4],
+                filename: "{{ invoice.invoice_number if invoice else 'Invoice' }}.pdf",
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, logging: false, backgroundColor: '#ffffff', useCORS: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>

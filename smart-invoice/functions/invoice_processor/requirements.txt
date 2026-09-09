@@ -1,0 +1,2 @@
+functions-framework>=3.0.0
+google-cloud-language>=2.10.0
