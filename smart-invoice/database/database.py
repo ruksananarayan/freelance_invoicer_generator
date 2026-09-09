@@ -610,22 +610,7 @@ def get_client_history(user_id, client_name):
         "avg_invoice_amount": round(avg_invoice_amount, 2)
     }
 
-DEFAULT_FREELANCE_SERVICES = [
-    {"title": "Web Development & Architecture", "hourly_rate": 850.0, "description": "Full-stack web application development, frontend, backend & API integration"},
-    {"title": "UI/UX & Graphic Design", "hourly_rate": 650.0, "description": "User interface design, wireframing, branding, and visual assets"},
-    {"title": "Cloud Infrastructure & DevOps", "hourly_rate": 950.0, "description": "GCP/AWS cloud setup, Docker containerization & CI/CD pipeline configuration"},
-    {"title": "Mobile App Development", "hourly_rate": 800.0, "description": "Cross-platform iOS & Android mobile application development"},
-    {"title": "Content Writing & Technical SEO", "hourly_rate": 500.0, "description": "Technical documentation, blog writing & search engine optimization strategy"}
-]
 
-def seed_default_services_for_user(user_id):
-    if not user_id:
-        return
-    for srv in DEFAULT_FREELANCE_SERVICES:
-        try:
-            create_service(user_id, srv["title"], srv["hourly_rate"], srv["description"])
-        except Exception as e:
-            logger.warning(f"Error seeding service {srv['title']} for user {user_id}: {e}")
 
 def create_service(user_id, title, hourly_rate, description=""):
     conn = get_db_connection()
@@ -649,16 +634,6 @@ def get_user_services(user_id):
     cursor.execute("SELECT * FROM services WHERE user_id = ? ORDER BY title ASC", (user_id,))
     services = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    
-    # Auto-seed default freelance services if user has 0 services registered
-    if not services and user_id:
-        seed_default_services_for_user(user_id)
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM services WHERE user_id = ? ORDER BY title ASC", (user_id,))
-        services = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
     return services
 
 def update_service(service_id, user_id, title, hourly_rate, description=""):
