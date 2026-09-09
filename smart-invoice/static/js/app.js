@@ -540,8 +540,7 @@ function openCreateInvoiceModal() {
     const tbody = document.getElementById("line-items-body");
     if (tbody) tbody.innerHTML = "";
     
-    addLineItemRow("Web Design & Development", 20, 100);
-    addLineItemRow("Consultation & Architecture", 5, 120);
+    addLineItemRow("", 1, 0);
 
     const today = new Date().toISOString().split("T")[0];
     const defaultDue = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
