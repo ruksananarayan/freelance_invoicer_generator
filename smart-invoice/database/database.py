@@ -205,6 +205,39 @@ def hydrate_sqlite_from_firestore():
     except Exception as e:
         logger.warning(f"GCP Firestore hydration skipped or deferred: {e}")
 
+    purge_legacy_default_services()
+
+DEFAULT_DESCRIPTIONS_TO_PURGE = [
+    "Full-stack web application development, frontend, backend & API integration",
+    "User interface design, wireframing, branding, and visual assets",
+    "GCP/AWS cloud setup, Docker containerization & CI/CD pipeline configuration",
+    "Cross-platform iOS & Android mobile application development",
+    "Technical documentation, blog writing & search engine optimization strategy"
+]
+
+def purge_legacy_default_services():
+    """Purges old auto-seeded default work items from SQLite and GCP Firestore."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        for desc in DEFAULT_DESCRIPTIONS_TO_PURGE:
+            cursor.execute("SELECT id FROM services WHERE description = ?", (desc,))
+            rows = cursor.fetchall()
+            for r in rows:
+                sid = r["id"]
+                cursor.execute("DELETE FROM services WHERE id = ?", (sid,))
+                try:
+                    from google.cloud import firestore
+                    project_id = os.environ.get("GCP_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT")
+                    db = firestore.Client(project=project_id) if project_id else firestore.Client()
+                    db.collection("services").document(str(sid)).delete()
+                except Exception:
+                    pass
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Legacy services purge deferred: {e}")
+
 # -------------------------------------------------------------
 # USER AUTHENTICATION HELPERS
 # -------------------------------------------------------------
