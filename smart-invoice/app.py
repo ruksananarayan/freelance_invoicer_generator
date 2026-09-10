@@ -464,12 +464,16 @@ def download_invoice_pdf(invoice_id):
     pdf_bytes = download_pdf_from_gcs(filename)
     if pdf_bytes:
         import io
-        return send_file(
+        resp = send_file(
             io.BytesIO(pdf_bytes),
             mimetype="application/pdf",
             as_attachment=False,
             download_name=f"{inv['invoice_number']}.pdf"
         )
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     else:
         return jsonify({"error": "PDF not found in cloud storage"}), 404
 
@@ -486,12 +490,16 @@ def public_download_invoice_pdf(invoice_id):
     pdf_bytes = download_pdf_from_gcs(filename)
     if pdf_bytes:
         import io
-        return send_file(
+        resp = send_file(
             io.BytesIO(pdf_bytes),
             mimetype="application/pdf",
             as_attachment=False,
             download_name=f"{inv['invoice_number']}.pdf"
         )
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     else:
         return jsonify({"error": "PDF not found in cloud storage"}), 404
 

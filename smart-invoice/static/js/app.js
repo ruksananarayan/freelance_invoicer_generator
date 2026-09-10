@@ -758,52 +758,57 @@ async function handleCreateInvoice(event) {
 }
 
 function uploadInvoicePDFToCloud(invoice) {
-    renderPrintableInvoice(invoice);
-    const element = document.getElementById("printable-invoice");
-    if (!element) return;
-    
-    const originalDisplay = element.style.display;
-    element.style.display = "block";
-    element.style.backgroundColor = "#ffffff";
-    element.style.color = "#1e293b";
-    
-    const opt = {
-        margin:       [0.4, 0.4, 0.4, 0.4],
-        filename:     `${invoice.invoice_number}_Invoice.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, logging: false, backgroundColor: '#ffffff', useCORS: true },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
+    return new Promise((resolve) => {
+        renderPrintableInvoice(invoice);
+        const element = document.getElementById("printable-invoice");
+        if (!element) return resolve();
+        
+        const originalDisplay = element.style.display;
+        element.style.display = "block";
+        element.style.backgroundColor = "#ffffff";
+        element.style.color = "#1e293b";
+        
+        const opt = {
+            margin:       [0.4, 0.4, 0.4, 0.4],
+            filename:     `${invoice.invoice_number}_Invoice.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, logging: false, backgroundColor: '#ffffff', useCORS: true },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
 
-    if (window.html2pdf) {
-        window.html2pdf().set(opt).from(element).outputPdf('blob').then(async (blob) => {
-            element.style.display = originalDisplay;
-            
-            const formData = new FormData();
-            formData.append("pdf", blob, `${invoice.invoice_number}.pdf`);
-            
-            try {
-                const uploadRes = await fetch(`/api/invoices/${invoice.id}/upload-pdf`, {
-                    method: "POST",
-                    body: formData
-                });
-                if (uploadRes.ok) {
-                    const result = await uploadRes.json();
-                    console.log("PDF uploaded to cloud storage successfully:", result.pdf_url);
-                    await loadInvoices();
-                } else {
-                    console.error("Failed to upload PDF:", uploadRes.statusText);
+        if (window.html2pdf) {
+            window.html2pdf().set(opt).from(element).outputPdf('blob').then(async (blob) => {
+                element.style.display = originalDisplay;
+                
+                const formData = new FormData();
+                formData.append("pdf", blob, `${invoice.invoice_number}.pdf`);
+                
+                try {
+                    const uploadRes = await fetch(`/api/invoices/${invoice.id}/upload-pdf`, {
+                        method: "POST",
+                        body: formData
+                    });
+                    if (uploadRes.ok) {
+                        const result = await uploadRes.json();
+                        console.log("PDF uploaded to cloud storage successfully:", result.pdf_url);
+                        await loadInvoices();
+                    } else {
+                        console.error("Failed to upload PDF:", uploadRes.statusText);
+                    }
+                } catch (err) {
+                    console.error("Error uploading PDF:", err);
                 }
-            } catch (err) {
-                console.error("Error uploading PDF:", err);
-            }
-        }).catch(err => {
-            console.error("PDF generation error:", err);
+                resolve();
+            }).catch(err => {
+                console.error("PDF generation error:", err);
+                element.style.display = originalDisplay;
+                resolve();
+            });
+        } else {
             element.style.display = originalDisplay;
-        });
-    } else {
-        element.style.display = originalDisplay;
-    }
+            resolve();
+        }
+    });
 }
 
 // -------------------------------------------------------------
@@ -964,6 +969,11 @@ async function markAsPaidDirect(invoiceId) {
             body: JSON.stringify({})
         });
         if (res.ok) {
+            const data = await res.json();
+            if (data.invoice) {
+                // Automatically re-render and re-upload the updated Paid PDF to Cloud Storage (GCS)
+                await uploadInvoicePDFToCloud(data.invoice);
+            }
             await loadDashboardStats();
             await loadInvoices();
         } else {
@@ -1093,6 +1103,10 @@ function triggerPDFDownload(invoiceNum) {
 function renderPrintableInvoice(inv) {
     const container = document.getElementById("printable-invoice");
     if (!container) return;
+    
+    const isPaid = inv.status === "PAID";
+    const statusColor = isPaid ? "#10b981" : "#f59e0b";
+    
     container.innerHTML = `
         <div class="print-invoice-header">
             <div class="print-company">
@@ -1102,7 +1116,10 @@ function renderPrintableInvoice(inv) {
             </div>
             <div class="print-inv-details">
                 <h2>${inv.invoice_number}</h2>
-                <p>Status: ${inv.status}</p>
+                <p style="font-weight: 700; color: ${statusColor}; font-size: 1.05rem;">
+                    Status: ${inv.status}
+                </p>
+                ${isPaid && inv.payment_date ? `<p style="font-size: 0.85rem; color: #10b981; font-weight: 600; margin-top: 0.2rem;">Paid Date: ${inv.payment_date}</p>` : ''}
             </div>
         </div>
 
@@ -1157,6 +1174,13 @@ function renderPrintableInvoice(inv) {
                 <span>₹${inv.grand_total.toFixed(2)}</span>
             </div>
         </div>
+
+        ${isPaid ? `
+            <div style="margin-top: 1.2rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1px solid #10b981; border-radius: 6px; color: #166534; font-size: 0.88rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.1rem;"></i>
+                <span><strong>PAYMENT SETTLED:</strong> This invoice was marked as PAID on <strong>${inv.payment_date || 'N/A'}</strong>.</span>
+            </div>
+        ` : ''}
 
         ${inv.notes ? `
             <div class="print-footer-notes">
